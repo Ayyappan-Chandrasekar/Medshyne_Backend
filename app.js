@@ -2,6 +2,7 @@ const express = require('express')
 const bodyParser = require('body-parser');
 const path = require('path')
 const dotenv =require('dotenv')
+const selfRegister = require('./route/selfRegister');
 const register = require('./route/register');
 const dashboard = require('./route/dashboard');
 const staff = require('./route/staff');
@@ -14,6 +15,7 @@ dotenv.config({path: path.join(__dirname, 'config', 'temp.env')})
 
 app.use(bodyParser.json());
 
+app.use('/self',selfRegister)
 app.use('/register',register)
 app.use('/dashboard',dashboard)
 app.use('/staff',staff)
