@@ -8,6 +8,8 @@ const router = express.Router()
  
 router.post('/register', studentData.reg) // Creat
 
+router.post('/parent/register', studentData.parentreg) // Creat
+
 router.get('/register/view', studentData.view);  //Reat
 
 router.put('/edit/:id', studentData.edit ); //Update

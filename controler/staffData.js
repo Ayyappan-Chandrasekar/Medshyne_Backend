@@ -3,26 +3,96 @@ const con = require('../route/mysql_con');
 const reg = (req, res) => {
     res.header('content-type', 'application/json');
     try {
-        const { Profile, Name, Designation, HCR, staff_contact, Last_update, View, Edit, Delete } = req.body;
+        // Extracting data from req.body
+        const {
+            profile,
+            name,
+            id_number,
+            password,
+            address,
+            gender,
+            state,
+            pincode,
+            division,
+            date_of_birth,
+            blood_group,
+            department,
+            designation,
+            allergies,
+            allergy_details,
+            any_disease,
+            disease_details,
+            current_health_report,
+            past_health_report,
+            hcr,
+            mobile_number
+        } = req.body;
         
-        const checkQuery = 'SELECT COUNT(*) AS count FROM staff WHERE Profile = ? AND Name = ?';
-        con.query(checkQuery, [Profile, Name], (err, result) => {
-            if (result[0].count > 0) {
-                return res.status(409).send('Record with the same Profile and Name already exists');
-            } else {
-                const query = 'INSERT INTO staff (Profile, Name, Designation, HCR, staff_contact, Last_update, View, Edit, `Delete`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)';
-                const values = [Profile, Name, Designation, HCR, staff_contact, Last_update, View, Edit, Delete];
 
-                con.query(query, values, (err, result) => {
-                    if (err) {
-                        console.error('Error adding register:', err);
-                        return res.status(500).send('Error adding student');
-                    } else {
-                        return res.status(201).send('Student added successfully');
-                    }
-                });
-            }
-        });
+         // Accessing `class` with bracket notation
+         const studentClass = req.body['class'];
+
+         // Validation
+         if (!id_number || typeof id_number !== 'string') {
+             return res.status(400).json({ Result: "Failure", message: 'Invalid id_number' });
+         }
+ 
+         // Check if id_number already exists
+         const checkQuery = 'SELECT COUNT(*) AS count FROM staffregister WHERE id_number = ?';
+         con.query(checkQuery, [id_number], (err, result) => {
+ 
+             if (result[0].count > 0) {
+                 // If id_number exists, return a conflict response
+                 return res.status(409).json({ Result: "Failure", message: 'id_number already exists' });
+             } else {
+                 // Validate other fields
+                 if (!['Male', 'Female', 'Other'].includes(gender)) {
+                     return res.status(400).json({ Result: "Failure", message: 'Invalid gender' });
+                 }
+ 
+                 if (!/^\d{6}$/.test(pincode)) {
+                     return res.status(400).json({ Result: "Failure", message: 'Invalid pincode. Must be 6 digits.' });
+                 }
+ 
+                 if (!['Yes', 'No'].includes(allergies)) {
+                     return res.status(400).json({ Result: "Failure", message: 'Invalid allergies value' });
+                 }
+ 
+                 if (!['Yes', 'No'].includes(any_disease)) {
+                     return res.status(400).json({ Result: "Failure", message: 'Invalid any_disease value' });
+                 }
+ 
+                 if (!['Yes', 'No'].includes(hcr)) {
+                     return res.status(400).json({ Result: "Failure", message: 'Invalid hcr value' });
+                 }
+ 
+                 if (!/^\d{10}$/.test(mobile_number)) {
+                     return res.status(400).json({ Result: "Failure", message: 'Invalid mobile_number. Must be 10 digits.' });
+                 }
+ 
+                 // SQL query to insert a new record into staffregister
+                 const insertQuery = `
+                     INSERT INTO staffregister (
+                        profile, name, id_number, password, address, gender, state, pincode, class, division, date_of_birth, blood_group, department, designation, allergies, allergy_details, any_disease, disease_details, current_health_report, past_health_report, hcr, mobile_number
+                     ) VALUES (
+                        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+                     )
+                 `;
+                 const values = [
+                    profile,name, id_number, password, address, gender, state, pincode, studentClass, division, date_of_birth, blood_group, department, designation, allergies, allergy_details, any_disease, disease_details, current_health_report, past_health_report, hcr, mobile_number
+                 ];
+ 
+                 // Execute the query
+                 con.query(insertQuery, values, (err, result) => {
+                     if (err) {
+                         console.error('Error adding record:', err);
+                         return res.status(500).json({ Result: "Failure", message: 'Error adding record' });
+                     } else {
+                         return res.status(201).send('Record added successfully');
+                     }
+                 });
+             }
+         });
     } catch (error) {
         console.error('Error:', error);
         return res.status(500).json({ Result: "Failure", message: error.message });

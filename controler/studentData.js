@@ -1,35 +1,105 @@
 const con = require("../route/mysql_con");
 
 const reg = (req, res) => {
-  res.header("content-type", "application/json");
+  res.header('content-type', 'application/json');
   try {
-    const {
-      Profile, Name, Division, HCR, ParentContact, LastUpdate, View, Edit, Delete,} = req.body;
-    const checkQuery =
-      "select count(*) as count from student where Profile =? and Name =?";
-    con.query(checkQuery, [Profile, Name], (err, result) => {
+    // Extracting data from req.body
+    const {profile, name, id_number, address, gender, state, pincode, division, date_of_birth, blood_group, department, designation, allergies, allergy_details, any_disease, disease_details, current_health_report, past_health_report} = req.body;
+
+    // Accessing `class` with bracket notation
+    const studentClass = req.body['class'];
+
+    // Validation
+    if (!id_number || typeof id_number !== 'string') {
+      return res.status(400).json({ Result: "Failure", message: 'Invalid id_number' });
+    }
+
+    // Check if id_number already exists
+    const checkQuery = 'SELECT COUNT(*) AS count FROM studentregister WHERE id_number = ?';
+    con.query(checkQuery, [id_number], (err, result) => {
+
       if (result[0].count > 0) {
-        return res.send("Record already created Profile and Name is same");
+        // If id_number exists, return a conflict response
+        return res.status(409).json({ Result: "Failure", message: 'id_number already exists' });
       } else {
-        const query =
-          "INSERT INTO student (Profile, Name, Division, HCR, ParentContact, LastUpdate, View, Edit,  `Delete`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
-        const values = [Profile, Name, Division, HCR, ParentContact, LastUpdate, View, Edit, Delete,];
-        con.query(query, values, (err, resuld) => {
+        // Validate other fields
+        if (!['Male', 'Female', 'Other'].includes(gender)) {
+          return res.status(400).json({ Result: "Failure", message: 'Invalid gender' });
+        }
+
+        if (!/^\d{6}$/.test(pincode)) {
+          return res.status(400).json({ Result: "Failure", message: 'Invalid pincode. Must be 6 digits.' });
+        }
+
+        if (!['Yes', 'No'].includes(allergies)) {
+          return res.status(400).json({ Result: "Failure", message: 'Invalid allergies value' });
+        }
+
+        if (!['Yes', 'No'].includes(any_disease)) {
+          return res.status(400).json({ Result: "Failure", message: 'Invalid any_disease value' });
+        }
+
+        // SQL query to insert a new record into staffregister
+        const insertQuery = `
+                   INSERT INTO studentregister (
+                    profile, name, id_number, address, gender, state, pincode, class, division, date_of_birth, blood_group, department, designation, allergies, allergy_details, any_disease, disease_details, current_health_report, past_health_report)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?,?, ?,?, ?, ?, ?, ?, ?, ?, ?,?)`;
+        const values = [
+          profile, name, id_number, address, gender, state, pincode, studentClass, division, date_of_birth, blood_group, department, designation, allergies, allergy_details, any_disease, disease_details, current_health_report, past_health_report];
+
+        // Execute the query
+        con.query(insertQuery, values, (err, result) => {
           if (err) {
-            console.error("You cannot add register:", err);
-            console.log("You cannot add register:", err);
-            res.status(404).send("Error adding student");
+            console.error('Error adding record:', err);
+            return res.status(500).json({ Result: "Failure", message: 'Error adding record' });
           } else {
-            res.status(201).send("Student added successfully");
+            return res.status(201).send('Record added successfully');
           }
         });
       }
     });
   } catch (error) {
-    console.error("Error:", error);
-    res.status(500).json({ Result: "Failure", message: ex.message });
+    console.error('Error:', error);
+    return res.status(500).json({ Result: "Failure", message: error.message });
   }
 };
+
+const parentreg = (req, res) => {
+  res.header('content-type', 'application/json');
+  try {
+    // Extracting data from req.body
+    const { parents_Name, Parent_relation, Parent_Mobile_number } = req.body;
+
+    // Validate mobile number format
+    if (!/^\d{10}$/.test(Parent_Mobile_number)) {
+      return res.status(400).json({ Result: "Failure", message: 'Invalid mobile_number. Must be 10 digits.' });
+    }
+
+    // SQL query to insert a new record into parentregister
+    const insertQuery = `
+      INSERT INTO studentparent (
+        parents_Name, Parent_relation, Parent_Mobile_number
+      ) VALUES (?, ?, ?)`;
+
+    const values = [
+      parents_Name, Parent_relation, Parent_Mobile_number
+    ];
+
+    // Execute the query
+    con.query(insertQuery, values, (err, result) => {
+      if (err) {
+        console.error('Error adding record:', err);
+        return res.status(500).json({ Result: "Failure", message: 'Error adding record' });
+      } else {
+        return res.status(201).json({ Result: "Success", message: 'Record added successfully' });
+      }
+    });
+  } catch (error) {
+    console.error('Error:', error);
+    return res.status(500).json({ Result: "Failure", message: error.message });
+  }
+};
+
 
 const view = (req, res) => {
   const query = "SELECT * FROM student";
@@ -99,6 +169,7 @@ const deleteConsu = (req, res) => {
 
 module.exports = {
   reg,
+  parentreg,
   view,
   deleteConsu,
   edit,
